@@ -7,20 +7,20 @@ Implements a basic proof-of-concept CLI application for collecting stock market 
 ## Installation
 
 No external dependencies are required. This may be built by cloning the repository and running `cargo install --path .`. (Or run without
-installing by, for example, `cargo run -- MSFT -p "2020-07-02"`).
+installing by, for example, `cargo run -- MSFT -p 2020-07-02`).
 
 ## Usage
 
 The stock tickers to be queried should be given on the command line, and a date for the period to start from given by `-p` option. 
-Dates should be given in the form "YYYY-MM-DD", and if not supplied be taken as sixty days previous to the current day.
+Dates should be given in the form YYYY-MM-DD, and if not supplied be taken as sixty days previous to the current day.
 
-For example `mng-tracker MSFT GOOG -p "2020-07-02"` queries for the period starting 2nd July 2020, for MSFT and GOOG.
+For example `mng-tracker MSFT GOOG -p 2020-07-02` queries for the period starting 2nd July 2020, for MSFT and GOOG.
 
 Output is to stdout, with errors to stderr.
 
 ## Example:
 
-Running `mng-tracker MSFT GOOG AAPL UBER IBM -p "2020-07-02"` produces:
+Running `mng-tracker MSFT GOOG AAPL UBER IBM -p 2020-07-02` produces:
 
     period start,symbol,price,change %,min,max,30d avg
     2020-07-02T13:30:00+00:00,MSFT,$233.84,0.14%,$199.41,$244.43,$237.07
