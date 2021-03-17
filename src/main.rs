@@ -64,10 +64,9 @@ async fn run_tickers(
 
     // Start a publisher and an error handler.
     let pa = PublisherActor.start().await?;
-    let pe = ErrorActor.start().await?;
-
     pa.send(PublishTick(Ticker::csv_header().to_owned()))?;
-    pe.send(PublishError("--".to_owned()))?;
+    
+    let _pe = ErrorActor.start().await?;
 
     for ticker in tickers.clone() {
         let ticker_symbol = ticker.to_owned();
