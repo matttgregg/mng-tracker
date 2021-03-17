@@ -16,6 +16,8 @@ Dates should be given in the form YYYY-MM-DD, and if not supplied be taken as si
 
 For example `mng-tracker MSFT GOOG -p 2020-07-02` queries for the period starting 2nd July 2020, for MSFT and GOOG.
 
+An optional `-f` argument may be given to read a comma separated list of tickers from a file. e.g. `mng-tracker -f tickers.txt -p 2020-07-02`
+
 Output is to stdout, with errors to stderr.
 
 ## Example:

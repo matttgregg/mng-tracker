@@ -8,7 +8,9 @@ edition = "2018"
 
 [dependencies]
 async-std = "1"
+async-trait = "0.1.48"
 chrono = "0.4"
 conv = "0.3.3"
 structopt = "0.3.13"
+xactor = "0.7.11"
 yahoo_finance_api = "1.1.5" 
