@@ -2,6 +2,8 @@ use chrono::prelude::*;
 use conv::*;
 use yahoo_finance_api as yahoo;
 
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
+
 /// Represent quote information for a ticker over a period of time.
 pub struct Ticker {
     symbol: String,
@@ -15,37 +17,29 @@ impl Ticker {
     ///
     /// Given a ticker symbol, and a connection, attempt to acquire quote data for a given time period.
     /// The quote data collected is the adjusted close price for each day.
-    pub fn try_new(
-        provider: &yahoo::YahooConnector,
+    pub async fn try_new(
+        provider: yahoo::YahooConnector,
         ticker: &str,
         from: DateTime<Utc>,
         to: DateTime<Utc>,
-    ) -> Option<Self> {
+    ) -> Result<Self> {
         let interval = "1d";
-        let quote = provider.get_quote_history_interval(ticker, from, to, interval);
+        let q = provider.get_quote_history_interval(ticker, from, to, interval).await?;
 
-        match quote {
-            Ok(q) => {
-                let res = q.chart.result.first()?;
-                let mut quote_times = vec![];
-                let mut quote_values: Vec<f64> = vec![];
-                for qt in q.quotes().unwrap() {
-                    let naive = NaiveDateTime::from_timestamp(qt.timestamp as i64, 0);
-                    quote_times.push(DateTime::<Utc>::from_utc(naive, Utc));
-                    quote_values.push(qt.adjclose);
-                }
-                Some(Ticker {
-                    symbol: res.meta.symbol.clone(),
-                    currency: res.meta.currency.clone(),
-                    quote_times,
-                    quote_values,
-                })
-            }
-            Err(e) => {
-                println!("Error: {:?}", e);
-                None
-            }
+        let res = q.chart.result.first().ok_or("could not access results")?;
+        let mut quote_times = vec![];
+        let mut quote_values: Vec<f64> = vec![];
+        for qt in q.quotes().unwrap() {
+            let naive = NaiveDateTime::from_timestamp(qt.timestamp as i64, 0);
+            quote_times.push(DateTime::<Utc>::from_utc(naive, Utc));
+            quote_values.push(qt.adjclose);
         }
+        Ok(Ticker {
+            symbol: res.meta.symbol.clone(),
+            currency: res.meta.currency.clone(),
+            quote_times,
+            quote_values,
+        })
     }
 
     /// The header for csv output from this ticker.

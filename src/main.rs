@@ -2,6 +2,12 @@ use chrono::prelude::*;
 use chrono::Duration;
 use structopt::StructOpt;
 use yahoo_finance_api as yahoo;
+use async_std::{
+    prelude::*, 
+    task, 
+};
+
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
 use mng_tracker::ticker::Ticker;
 
@@ -29,14 +35,35 @@ fn main() {
 
     let quotes_to = Utc::now();
 
-    let provider = yahoo::YahooConnector::new();
     println!("{}", Ticker::csv_header());
-    for ticker in cli.tickers {
-        if let Some(ti) = Ticker::try_new(&provider, &ticker, quotes_from, quotes_to) {
-            println!("{}", ti.csv_line());
-        } else {
-            eprintln!("Could not get data for ticker {}", ticker);
-        }
+    task::block_on(run_tickers(&cli.tickers, &quotes_from, &quotes_to));
+}
+
+async fn run_tickers(tickers: &[String], quotes_from: &DateTime<Utc>, quotes_to: &DateTime<Utc>) -> Result<()> {
+    let mut tasks = vec![];
+    let q_from = quotes_from.clone();
+    let q_to = quotes_to.clone();
+
+    for ticker in tickers {
+        let ticker_symbol = ticker.clone();
+        let t = task::spawn(async move {
+            run_ticker(&ticker_symbol, q_from, q_to).await;
+        });
+        tasks.push(t);
     }
+
+    // Wait for full completion.
+    for t in tasks {
+        t.await;
+    }
+
+    Ok(())
+}
+
+async fn run_ticker(ticker: &str, quotes_from: DateTime<Utc>, quotes_to: DateTime<Utc>) -> Result<()> {
+    let provider = yahoo::YahooConnector::new();
+    let ti = Ticker::try_new(provider, ticker, quotes_from, quotes_to).await?;
+    println!("{}", ti.csv_line());
+    Ok(())
 }
 
