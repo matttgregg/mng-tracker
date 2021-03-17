@@ -71,6 +71,7 @@ async fn run_tickers(tickers: Vec<String>, quotes_from: &DateTime<Utc>, quotes_t
 
     for ticker in tickers.clone() {
         let ticker_symbol = ticker.to_owned();
+        task::sleep(std::time::Duration::from_millis(25)).await;
         let t = spawn_and_log_error(run_ticker(ticker_symbol, q_from, q_to), format!("{}", ticker));
         tasks.push((t, ticker));
     }
