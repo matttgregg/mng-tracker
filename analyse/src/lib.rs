@@ -27,6 +27,7 @@ pub fn currency_symbol(s: &str) -> &str {
 /// let result = min(&vec![11.2, -13.6, 0.004, 500.9, -27.1, -26.2, 5.4]).expect("should be a float");
 /// assert_eq!(result, -27.1);
 /// ```
+#[inline]
 pub fn min(series: &[f64]) -> Option<f64> {
     Some(series.iter().cloned().fold(1. / 0. /* +inf */, f64::min))
 }
@@ -38,6 +39,7 @@ pub fn min(series: &[f64]) -> Option<f64> {
 /// let result = max(&vec![11.2, -13.6, 0.004, 500.9, -27.1, -26.2, 5.4]).expect("should be a float");
 /// assert_eq!(result, 500.9);
 /// ```
+#[inline]
 pub fn max(series: &[f64]) -> Option<f64> {
     Some(series.iter().cloned().fold(-1. / 0. /* -inf */, f64::max))
 }
@@ -50,6 +52,7 @@ pub fn max(series: &[f64]) -> Option<f64> {
 /// let result = price_diff(&vec![1.0, 11.2, -13.6, 0.004, 500.9, -27.1, -26.2, 5.4, 2.0]).expect("should be a tuple");
 /// assert_eq!(result, (1.0, 100.0));
 /// ```
+#[inline]
 pub fn price_diff(series: &[f64]) -> Option<(f64, f64)> {
     let first = series.first()?;
     let last = series.last()?;
@@ -67,6 +70,7 @@ pub fn price_diff(series: &[f64]) -> Option<(f64, f64)> {
 /// assert!((averages[1] - (&data[1] + &data[2]) / 2.0).abs() < 0.001);
 /// assert!((averages[7] - (&data[7] + &data[8]) / 2.0).abs() < 0.001);
 /// ```
+#[inline]
 pub fn n_window_sma(n: usize, series: &[f64]) -> Option<Vec<f64>> {
     let w_size = f64::value_from(n).ok()?;
     let mut avgs = vec![];

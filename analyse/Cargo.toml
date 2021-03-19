@@ -8,3 +8,11 @@ edition = "2018"
 
 [dependencies]
 conv = "0.3.3"
+
+[dev-dependencies]
+criterion = "0.3"
+rand = "0.8"
+
+[[bench]]
+name = "my_benchmark"
+harness = false
