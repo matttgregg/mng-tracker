@@ -2,7 +2,16 @@ use chrono::prelude::*;
 use yahoo_finance_api as yahoo;
 use analyse::*;
 
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
+#[derive(Debug, Clone)]
+pub struct TickerError(String);
+
+impl std::fmt::Display for TickerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Ticker Error:{}", self.0)
+    }
+}
+
+impl std::error::Error for TickerError {}
 
 /// Represent quote information for a ticker over a period of time.
 pub struct Ticker {
@@ -22,11 +31,11 @@ impl Ticker {
         ticker: &str,
         from: DateTime<Utc>,
         to: DateTime<Utc>,
-    ) -> Result<Self> {
+    ) -> xactor::Result<Self> {
         let interval = "1d";
         let q = provider.get_quote_history_interval(ticker, from, to, interval).await?;
 
-        let res = q.chart.result.first().ok_or("could not access results")?;
+        let res = q.chart.result.first().ok_or(TickerError("could not access results".to_owned()))?;
         let mut quote_times = vec![];
         let mut quote_values: Vec<f64> = vec![];
         for qt in q.quotes().unwrap() {
@@ -80,4 +89,3 @@ impl Ticker {
         )
     }
 }
-
