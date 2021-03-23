@@ -19,3 +19,13 @@ pub struct Tick {}
 #[message]
 #[derive(Clone)]
 pub struct Flush {}
+
+/// Message to request termination.
+#[message]
+#[derive(Clone)]
+pub struct Exit {}
+
+/// Message to get last n values.
+#[message(result = "Vec<String>")]
+#[derive(Clone)]
+pub struct LastN(pub usize);

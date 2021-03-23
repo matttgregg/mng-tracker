@@ -4,9 +4,10 @@ use chrono::Duration;
 use std::fs;
 use std::path::PathBuf;
 use structopt::StructOpt;
+use text_io::read;
 use xactor::*;
 
-use mng_tracker::{new_file_writer, ErrorActor, PublishTick, PublisherActor, Ticker, TickerActor};
+use mng_tracker::{CacheActor, ErrorActor, LastN, PublishTick, PublisherActor, Ticker, TickerActor, new_file_writer};
 
 #[derive(StructOpt)]
 struct Cli {
@@ -84,7 +85,9 @@ async fn run_tickers(
         None
     };
 
-    let _pe = ErrorActor("Error:".to_owned()).start().await?;
+    let _pe = Supervisor::start(|| ErrorActor("Error:".to_owned())).await?;
+
+    let cache = Supervisor::start(|| CacheActor::with_capacity(100)).await?;
 
     let _fw = match out_file {
         Some(f) => {
@@ -101,24 +104,24 @@ async fn run_tickers(
     };
 
     for ticker in tickers.clone() {
-        let ticker_symbol = ticker.to_owned();
-        task::sleep(std::time::Duration::from_millis(37)).await;
+        // Sleep before starting tickers (avoids too many simultaneous requests).
+        task::sleep(std::time::Duration::from_millis(17)).await;
         // Start an actor, and send initial tick.
-        let t = TickerActor {
-            ticker: ticker_symbol,
+        let t = Supervisor::start(move || TickerActor {
+            ticker: ticker.clone(),
             quotes_from: q_from,
             quotes_to: q_to,
-        }
-        .start()
+        })
         .await?;
         tasks.push(t);
     }
 
-    // Wait for full completion.
-    for t in tasks {
-        t.wait_for_stop().await;
-    }
+    eprintln!("Running");
+    let _: String = read!("{}\n");
     eprintln!("All Done!");
+
+    let last5 = cache.call(LastN(5)).await?;
+    eprintln!("Last 5 values: {:?}", last5);
 
     Ok(())
 }

@@ -15,3 +15,6 @@ pub use ticker_actor::*;
 
 pub mod file_writer;
 pub use file_writer::*;
+
+pub mod cache_actor;
+pub use cache_actor::*;
