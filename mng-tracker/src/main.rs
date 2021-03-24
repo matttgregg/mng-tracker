@@ -5,9 +5,13 @@ use std::fs;
 use std::path::PathBuf;
 use structopt::StructOpt;
 use text_io::read;
+use tide::Request;
 use xactor::*;
 
-use mng_tracker::{CacheActor, ErrorActor, LastN, PublishTick, PublisherActor, Ticker, TickerActor, new_file_writer};
+use mng_tracker::{
+    new_file_writer, CacheActor, ErrorActor, LastN, PublishTick, PublisherActor, Ticker,
+    TickerActor,
+};
 
 #[derive(StructOpt)]
 struct Cli {
@@ -72,7 +76,6 @@ async fn run_tickers(
     to_stdout: bool,
     out_file: &Option<PathBuf>,
 ) -> xactor::Result<()> {
-    let mut tasks = vec![];
     let q_from = quotes_from.clone();
     let q_to = quotes_to.clone();
 
@@ -103,6 +106,47 @@ async fn run_tickers(
         None => None,
     };
 
+
+    eprintln!("Running");
+
+    let port: usize = 8081;
+    let conn = format!("127.0.0.1:{}", port);
+    let state = State { cache };
+    let mut app = tide::with_state(state);
+    app.at("/tail/:count")
+        .get(|req: Request<State>| async move {
+            let n = req
+                .param("count")
+                .map(|x| x.parse::<usize>())
+                .unwrap()
+                .unwrap();
+            let tail = req.state().cache.call(LastN(n)).await?;
+            Ok(format!("{:?}", tail))
+        });
+    eprintln!("Listening on {}", conn);
+    let tasks_future = start_tickers(tickers, q_from, q_to);
+    let (t_err, app_err) = futures::join!(tasks_future, app.listen(conn));
+
+    if let Err(e) = t_err {
+        eprintln!("Tasks error:{}", e);
+    }
+
+    if let Err(e) = app_err {
+        eprintln!("Web App Err:{}", e);
+    }
+
+    let _: String = read!("{}\n");
+    eprintln!("All Done!");
+
+    Ok(())
+}
+
+async fn start_tickers(
+    tickers: Vec<String>,
+    q_from: DateTime<Utc>,
+    q_to: DateTime<Utc>,
+) -> xactor::Result<Vec<Addr<TickerActor>>> {
+    let mut tasks = vec![];
     for ticker in tickers.clone() {
         // Sleep before starting tickers (avoids too many simultaneous requests).
         task::sleep(std::time::Duration::from_millis(17)).await;
@@ -115,13 +159,10 @@ async fn run_tickers(
         .await?;
         tasks.push(t);
     }
+    Ok(tasks)
+}
 
-    eprintln!("Running");
-    let _: String = read!("{}\n");
-    eprintln!("All Done!");
-
-    let last5 = cache.call(LastN(5)).await?;
-    eprintln!("Last 5 values: {:?}", last5);
-
-    Ok(())
+#[derive(Clone)]
+struct State {
+    cache: xactor::Addr<CacheActor>,
 }
